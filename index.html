@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#02060f">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Hunter System</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--a:#38bdf8;--a1:rgba(56,189,248,.16);--a2:rgba(56,189,248,.45);--a3:rgba(56,189,248,.85);--bg:#02060f;--card:rgba(6,18,40,.84);--txt:#dff3ff;--red:#ff4d6d;--gold:#fbbf24;--grn:#4ade80}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg)}
+body{color:var(--txt);font-family:'Rajdhani',system-ui,sans-serif;font-size:16px;font-weight:500;min-height:100vh;background:radial-gradient(ellipse at 50% -10%,var(--a1),transparent 60%),var(--bg)}
+.o{font-family:'Orbitron',system-ui,sans-serif}
+.dim{opacity:.6}.small{font-size:12px}.center{text-align:center}
+#fx{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:1;background:repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0 1px,transparent 1px 3px)}
+header{position:sticky;top:0;z-index:30;display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(2,6,15,.88);backdrop-filter:blur(8px);border-bottom:1px solid var(--a2)}
+.logo{font-family:Orbitron;font-weight:800;letter-spacing:5px;color:var(--a);text-shadow:0 0 12px var(--a);font-size:15px}
+.pill{font-family:Orbitron;font-size:11px;border:1px solid var(--a2);padding:4px 10px;border-radius:20px;background:var(--a1);margin-left:6px}
+.wrap{position:relative;z-index:2;max-width:520px;margin:auto;padding:6px 12px 110px}
+.win{position:relative;border:1px solid var(--a2);background:var(--card);box-shadow:inset 0 0 24px var(--a1);padding:14px;margin:12px 0;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px))}
+.win h2{font-family:Orbitron;font-size:11px;letter-spacing:3px;color:var(--a);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.win h2::before{content:"";width:8px;height:8px;background:var(--a);box-shadow:0 0 8px var(--a);transform:rotate(45deg)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.page{display:none}.page.on{display:block;animation:fade .35s}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.bar{height:10px;background:rgba(255,255,255,.06);border:1px solid var(--a2);margin:6px 0;overflow:hidden;border-radius:2px}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--a),#fff8);box-shadow:0 0 10px var(--a);transition:width .5s}
+.bar.red i{background:linear-gradient(90deg,#ff4d6d,#ff9a9a);box-shadow:0 0 10px #ff4d6d}
+.hero{display:flex;gap:14px;align-items:center}
+.ringwrap{position:relative;width:96px;height:96px;flex-shrink:0;cursor:pointer}
+.ringwrap::before{content:"";position:absolute;inset:-5px;border-radius:50%;background:conic-gradient(from 0deg,var(--a),transparent 25%,var(--a) 55%,transparent 80%,var(--a));animation:spin 5s linear infinite;filter:drop-shadow(0 0 8px var(--a))}
+@keyframes spin{to{transform:rotate(360deg)}}
+.avatar{position:relative;z-index:1;width:96px;height:96px;border-radius:50%;background:#06142b;display:flex;align-items:center;justify-content:center;font-size:40px;overflow:hidden;border:2px solid var(--bg)}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.name{font-size:18px;word-break:break-word}
+.tier{font-size:19px;font-weight:800;color:var(--a);text-shadow:0 0 12px var(--a)}
+.lvl{font-size:26px;font-weight:800;margin-top:2px}
+.pts{margin-top:10px;padding:8px;text-align:center;border:1px dashed var(--gold);color:var(--gold);font-size:13px;animation:pulse 1.4s infinite}
+@keyframes pulse{50%{box-shadow:0 0 14px var(--gold)}}
+.srow{display:grid;grid-template-columns:46px 1fr 34px 30px;gap:8px;align-items:center;margin:6px 0}
+.sk{font-size:11px;color:var(--a)}
+.plus{width:28px;height:28px;padding:0;font-size:16px;line-height:1;border-color:var(--gold);color:var(--gold)}
+.ladder{display:flex;gap:6px;overflow-x:auto;padding:4px 0}
+.lad{flex:0 0 auto;text-align:center;opacity:.28;width:60px;filter:grayscale(.6)}
+.lad.cur{opacity:1;filter:drop-shadow(0 0 10px var(--a))}
+.lad.got{opacity:.7;filter:none}
+button{font-family:'Orbitron',sans-serif;background:var(--a1);color:var(--txt);border:1px solid var(--a);padding:9px 12px;font-size:11px;letter-spacing:1px;border-radius:2px;cursor:pointer;box-shadow:0 0 8px var(--a1)}
+button:active{background:var(--a);color:#001}
+button:disabled{opacity:.35}
+button.pri{background:var(--a);color:#001;font-weight:800;box-shadow:0 0 14px var(--a2)}
+button.dng{border-color:var(--red);color:var(--red)}
+.btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+input,textarea{font-family:inherit;background:rgba(0,10,30,.8);border:1px solid var(--a2);color:var(--txt);padding:9px;width:100%;border-radius:2px;font-size:15px}
+textarea{resize:vertical;min-height:70px;font-size:12px}
+label{font-size:11px;opacity:.7;display:block;margin-bottom:3px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.task{display:grid;grid-template-columns:46px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px dashed var(--a1)}
+.task:last-child{border:0}
+.task.done{opacity:.5}
+.ico{width:46px;height:46px;display:flex;align-items:center;justify-content:center;font-size:24px;border:1px solid var(--a2);background:var(--a1);clip-path:polygon(0 0,80% 0,100% 20%,100% 100%,20% 100%,0 80%)}
+.chips{font-size:13px;margin-top:6px;opacity:.9}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal div{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:11px;border:1px solid var(--a1);opacity:.5}
+.cal .on{background:var(--a);color:#001;opacity:1;font-weight:700;box-shadow:0 0 8px var(--a2)}
+.cal .today{border-color:var(--a);opacity:1}
+.photos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.photos div{position:relative}
+.photos img{width:100%;aspect-ratio:3/4;object-fit:cover;border:1px solid var(--a2);display:block}
+.photos span{position:absolute;left:0;right:0;bottom:0;background:#000b;font-size:10px;padding:2px;text-align:center}
+.boss{text-align:center}
+.bossico{font-size:84px;animation:float 3s ease-in-out infinite;filter:drop-shadow(0 0 18px var(--red))}
+.bossico.dead{filter:grayscale(1);animation:none;opacity:.4}
+@keyframes float{50%{transform:translateY(-10px)}}
+.shop{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--a1)}
+.ach{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ach div{text-align:center;padding:8px 4px;border:1px solid var(--a1);font-size:11px}
+.ach div.got{border-color:var(--gold);background:rgba(251,191,36,.08)}
+.ach div:not(.got){filter:grayscale(1);opacity:.4}
+.ach b{display:block;font-size:22px}
+.vs{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;text-align:center;padding:5px 0;border-bottom:1px dashed var(--a1)}
+.vs .w{color:var(--grn);font-weight:700}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:rgba(2,6,15,.95);backdrop-filter:blur(8px);border-top:1px solid var(--a2);z-index:40;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;border:0;border-radius:0;padding:10px 0 9px;font-size:9px;letter-spacing:1px;background:transparent;box-shadow:none;color:var(--txt);opacity:.55}
+nav button b{display:block;font-size:19px;margin-bottom:2px}
+nav button.on{opacity:1;color:var(--a);background:linear-gradient(0deg,var(--a1),transparent);box-shadow:inset 0 2px 0 var(--a)}
+#toast{position:fixed;top:56px;left:50%;transform:translateX(-50%) translateY(-160px);background:#041227;border:1px solid var(--a);padding:10px 16px;font-size:14px;z-index:120;transition:.35s;box-shadow:0 0 18px var(--a2);max-width:92%;text-align:center}
+#toast.show{transform:translateX(-50%) translateY(0)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:90;padding:16px}
+.modal.show{display:flex}
+.modal .box{border:2px solid var(--a);background:#041227;padding:20px 16px;box-shadow:0 0 40px var(--a2);animation:pop .35s;width:100%;max-width:380px;text-align:center}
+@keyframes pop{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+#pprev{width:100%;max-height:230px;object-fit:cover;border:1px solid var(--a);margin:10px 0;display:none}
+#bigimg{max-width:100%;max-height:85vh;border:2px solid var(--a)}
+.float{position:fixed;left:50%;top:42%;transform:translateX(-50%);font-family:Orbitron;font-weight:800;font-size:26px;color:var(--a);pointer-events:none;z-index:130;animation:fl 1.1s forwards;text-shadow:0 0 12px var(--a)}
+@keyframes fl{to{transform:translate(-50%,-90px);opacity:0}}
+#cine{position:fixed;inset:0;z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:radial-gradient(circle at 50% 40%,var(--a1),rgba(0,0,0,.94) 70%);padding:20px}
+#cine.show{display:flex;animation:fade .3s}
+#cine .t{font-family:Orbitron;font-weight:800;font-size:34px;color:var(--a);text-shadow:0 0 24px var(--a);animation:pulse2 1s infinite}
+@keyframes pulse2{50%{text-shadow:0 0 44px var(--a);transform:scale(1.05)}}
+.shock i{position:absolute;left:50%;top:42%;width:20px;height:20px;border:2px solid var(--a);border-radius:50%;transform:translate(-50%,-50%);animation:shock 1.6s ease-out infinite;opacity:0}
+.shock i:nth-child(2){animation-delay:.5s}.shock i:nth-child(3){animation-delay:1s}
+@keyframes shock{0%{width:20px;height:20px;opacity:.9}100%{width:560px;height:560px;opacity:0}}
+#boot{position:fixed;inset:0;background:#000;z-index:140;display:none;flex-direction:column;justify-content:center;padding:24px}
+#boot.show{display:flex}
+#bootlog{font-family:Orbitron;font-size:12px;line-height:2;color:var(--a);white-space:pre-wrap;min-height:120px}
+#bootform{display:none;margin-top:14px}
+#bootform.show{display:block}
+footer{text-align:center;font-size:12px;opacity:.7;margin:24px 0 6px;letter-spacing:3px;font-family:Orbitron}
+</style>
+</head>
+<body>
+<canvas id="fx"></canvas>
+<div id="toast"></div>
+
+<!-- Awakening (pehli baar) -->
+<div id="boot">
+  <div id="bootlog"></div>
+  <div id="bootform">
+    <div class="grid3" style="grid-template-columns:1fr 1fr 1fr">
+      <div style="grid-column:1/4"><label>HUNTER NAME</label><input id="bName" placeholder="Apna naam" autocomplete="off"></div>
+      <div><label>HEIGHT cm</label><input id="bH" type="number" value="170"></div>
+      <div><label>WEIGHT kg</label><input id="bW" type="number" value="65"></div>
+    </div>
+    <div class="btns"><button class="pri" style="width:100%;padding:14px" data-act="awaken">AWAKEN</button></div>
+    <div class="center small dim" style="margin-top:14px;font-family:Orbitron;letter-spacing:2px">MADE BY SHUAIB SALMANI</div>
+  </div>
+</div>
+
+<!-- Level up -->
+<div id="cine" data-act="closecine">
+  <div class="shock"><i></i><i></i><i></i></div>
+  <div class="t" id="cTitle">LEVEL UP</div>
+  <div id="cBadge" style="margin:14px 0"></div>
+  <div class="o" style="font-size:22px" id="cLv"></div>
+  <div style="margin-top:8px" id="cSub"></div>
+  <div class="small dim" style="margin-top:24px">TAP TO CONTINUE</div>
+</div>
+
+<!-- Proof -->
+<div class="modal" id="proofModal"><div class="box">
+  <div class="o" style="color:var(--a);font-size:14px" id="ptitle">PROOF</div>
+  <p class="small dim" style="margin-top:8px">Exercise karte hue ki nayi photo lo. Photo ke bina XP nahi milega.</p>
+  <div class="btns" style="justify-content:center"><button class="pri" data-act="pickproof">📸 PHOTO LO</button></div>
+  <input type="file" id="pfile" accept="image/*" capture="environment" hidden>
+  <img id="pprev">
+  <label id="pamtlabel" style="margin-top:8px;text-align:left">Kitne kiye?</label>
+  <input type="number" id="pamt" min="0">
+  <p class="small" id="pmsg" style="margin-top:8px;color:var(--red)"></p>
+  <div class="btns" style="justify-content:center"><button class="pri" id="pok" disabled data-act="confirmproof">CONFIRM</button><button data-act="closeproof">CANCEL</button></div>
+</div></div>
+
+<div class="modal" id="imgModal" data-act="closeimg"><img id="bigimg"></div>
+<input type="file" id="afile" accept="image/*" hidden>
+
+<header>
+  <div class="logo">HUNTER SYSTEM</div>
+  <div><span class="pill" id="hLv">LV 1</span><span class="pill" id="hGold">🪙 0</span></div>
+</header>
+
+<main class="wrap">
+
+  <!-- 1. HUNTER -->
+  <section class="page on" id="pageHunter">
+    <div class="win" id="hero"></div>
+    <div class="win"><h2>ABILITY MATRIX</h2><div id="radar" class="center"></div><div id="stats"></div></div>
+    <div class="win"><h2>RANK LADDER</h2><div class="ladder" id="ladder"></div></div>
+  </section>
+
+  <!-- 2. QUEST -->
+  <section class="page" id="pageQuest">
+    <div class="win" id="qhead"></div>
+    <div class="win"><h2>DAILY QUEST</h2><div id="quest"></div>
+      <div class="small dim" style="margin-top:10px">⚠ XP sirf photo proof par milta hai. Rep +2 XP, plank +0.5 XP/sec, run +25 XP/km. Task complete +20, poora quest +50 XP. Quest adhura chhoda to -30 XP aur streak reset.</div></div>
+    <div class="win"><h2>STREAK CALENDAR</h2><div class="cal" id="cal"></div></div>
+    <div class="win"><h2>PROOF GALLERY</h2><div class="small dim" id="noproof">Abhi koi proof nahi.</div><div class="photos" id="photos"></div></div>
+  </section>
+
+  <!-- 3. DUNGEON -->
+  <section class="page" id="pageDungeon">
+    <div class="win boss" id="boss"></div>
+    <div class="win"><h2>SHOP</h2><div id="shop"></div></div>
+    <div class="win"><h2>TROPHIES</h2><div class="ach" id="ach"></div></div>
+  </section>
+
+  <!-- 4. NETWORK -->
+  <section class="page" id="pageNet">
+    <div class="win">
+      <h2>SHARE YOUR HUNTER</h2>
+      <div id="netcard"></div>
+      <label style="margin-top:12px">TUMHARA HUNTER CODE</label>
+      <textarea id="myCode" readonly></textarea>
+      <div class="btns">
+        <button class="pri" data-act="share">📤 SHARE CARD</button>
+        <button data-act="sharelink">🔗 SHARE LINK</button>
+        <button data-act="copycode">📋 COPY CODE</button>
+      </div>
+    </div>
+    <div class="win">
+      <h2>SCAN ANOTHER HUNTER</h2>
+      <div class="small dim" style="margin-bottom:8px">Dost ka Hunter Code ya link paste karo, aur apni power se compare karo.</div>
+      <textarea id="scanIn" placeholder="Code yahan paste karo"></textarea>
+      <div class="btns"><button class="pri" data-act="scan">🔍 SCAN</button></div>
+      <div id="scanOut" style="margin-top:12px"></div>
+    </div>
+    <div class="win">
+      <h2>PROFILE & SETTINGS</h2>
+      <div class="grid3">
+        <div><label>NAAM</label><input id="iname"></div>
+        <div><label>HEIGHT</label><input id="ih" type="number"></div>
+        <div><label>WEIGHT</label><input id="iw" type="number"></div>
+      </div>
+      <div class="btns">
+        <button class="pri" data-act="savep">SAVE</button>
+        <button data-act="mute" id="muteBtn">🔊 SOUND ON</button>
+      </div>
+      <label style="margin-top:14px">BACKUP (photos shamil nahi)</label>
+      <textarea id="bk" placeholder="Import ke liye backup text yahan paste karo"></textarea>
+      <div class="btns">
+        <button data-act="export">⬇ EXPORT</button>
+        <button data-act="import">⬆ IMPORT</button>
+        <button class="dng" data-act="reset">RESET ALL</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>MADE BY SHUAIB SALMANI</footer>
+</main>
+
+<nav>
+  <button class="on" data-p="Hunter"><b>🛡</b>HUNTER</button>
+  <button data-p="Quest"><b>⚔</b>QUEST</button>
+  <button data-p="Dungeon"><b>👹</b>DUNGEON</button>
+  <button data-p="Net"><b>📡</b>NETWORK</button>
+</nav>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const KEY='shuaib_hunter_system_v3',OLD='shuaib_fitness_system_v2';
+const todayStr=()=>new Date().toLocaleDateString('en-CA');
+const dayOffset=n=>new Date(Date.now()+n*864e5).toLocaleDateString('en-CA');
+const daysBetween=(a,b)=>Math.round((new Date(b)-new Date(a))/864e5);
+
+/* ================= DATA ================= */
+const TIERS=[
+ {n:'BRONZE',min:1,c1:'#e0a060',c2:'#7a4a1a',a:'#e8a15a'},
+ {n:'SILVER',min:5,c1:'#e3ebef',c2:'#6f8794',a:'#b9d6e6'},
+ {n:'GOLD',min:10,c1:'#ffe27a',c2:'#b8860b',a:'#ffd24a'},
+ {n:'PLATINUM',min:20,c1:'#8ff0e0',c2:'#1f8a80',a:'#4de8d0'},
+ {n:'DIAMOND',min:35,c1:'#8fd8ff',c2:'#1565c0',a:'#38bdf8'},
+ {n:'HEROIC',min:50,c1:'#ff8a8a',c2:'#a31515',a:'#ff4d6d'},
+ {n:'LEGEND',min:75,c1:'#d9a0ff',c2:'#5a189a',a:'#b86bff'}
+];
+const STATS={STR:'STRENGTH',AGI:'AGILITY',VIT:'VITALITY',END:'ENDURANCE',SPR:'SPIRIT'};
+const CLS={STR:'BERSERKER',AGI:'SHADOW RUNNER',VIT:'IRON GUARD',END:'ENDURANCE KNIGHT',SPR:'DISCIPLINE MONK'};
+const EX=[
+ {id:'push',name:'Push-ups',unit:'reps',base:10,per:3,min:1,stat:'STR',i:'💪'},
+ {id:'squat',name:'Squats',unit:'reps',base:15,per:4,min:1,stat:'VIT',i:'🦵'},
+ {id:'sit',name:'Sit-ups',unit:'reps',base:10,per:3,min:1,stat:'END',i:'🌀'},
+ {id:'run',name:'Running',unit:'km',base:1,per:0.25,min:1,stat:'AGI',i:'🏃'},
+ {id:'plank',name:'Plank',unit:'sec',base:20,per:5,min:2,stat:'VIT',i:'🧱'},
+ {id:'lunge',name:'Lunges',unit:'reps',base:10,per:2,min:3,stat:'AGI',i:'🏹'},
+ {id:'jack',name:'Jumping Jacks',unit:'reps',base:20,per:4,min:4,stat:'END',i:'⚡'},
+ {id:'burp',name:'Burpees',unit:'reps',base:5,per:1.5,min:5,stat:'END',i:'🔥'},
+ {id:'pull',name:'Pull-ups',unit:'reps',base:3,per:1,min:8,stat:'STR',i:'🧗'}
+];
+const BOSSES=[['STONE GOLEM','🗿'],['SHADOW WOLF','🐺'],['IRON GIANT','🤖'],['FROST DRAKE','🐉'],['FLAME TITAN','👹'],['VOID KNIGHT','💀'],['ANCIENT DRAGON','🐲']];
+const SHOP=[
+ {id:'shield',i:'🛡',n:'STREAK SHIELD',d:'Ek missed day ki penalty aur streak break bachata hai (max 3)',p:150},
+ {id:'boost',i:'⚡',n:'XP SCROLL x2',d:'Aaj ka saara XP double',p:100},
+ {id:'reset',i:'🔄',n:'STAT RESET',d:'Lagaye hue saare stat points wapas',p:200}
+];
+const ACH=[
+ {id:'first',i:'🩸',n:'FIRST BLOOD',f:s=>s.totReps+s.totKm+s.totSec>0},
+ {id:'c100',i:'💯',n:'CENTURY',f:s=>s.totReps>=100},
+ {id:'k1',i:'⚔',n:'1000 STRIKES',f:s=>s.totReps>=1000},
+ {id:'run10',i:'👟',n:'ROAD RUNNER',f:s=>s.totKm>=10},
+ {id:'run42',i:'🏅',n:'MARATHONER',f:s=>s.totKm>=42},
+ {id:'plank',i:'🧱',n:'IRON CORE',f:s=>s.totSec>=300},
+ {id:'s3',i:'🔥',n:'ON FIRE (3d)',f:s=>s.best>=3},
+ {id:'s7',i:'📅',n:'WEEK WARRIOR',f:s=>s.best>=7},
+ {id:'s30',i:'🗿',n:'UNBREAKABLE',f:s=>s.best>=30},
+ {id:'l5',i:'⭐',n:'RISING STAR',f:s=>s.level>=5},
+ {id:'l10',i:'🌟',n:'ELITE HUNTER',f:s=>s.level>=10},
+ {id:'l25',i:'👑',n:'APEX HUNTER',f:s=>s.level>=25},
+ {id:'perfect',i:'✅',n:'PERFECT DAY',f:s=>s.daysDone>=1},
+ {id:'boss1',i:'☠',n:'BOSS SLAYER',f:s=>s.kills>=1},
+ {id:'boss5',i:'🏰',n:'DUNGEON LORD',f:s=>s.kills>=5},
+ {id:'rich',i:'🪙',n:'TREASURE',f:s=>s.gold>=500}
+];
+
+/* ================= STATE ================= */
+function defState(){return {setup:false,id:'HNT-'+Math.random().toString(36).slice(2,7).toUpperCase(),name:'Player',h:170,w:65,level:1,xp:0,gold:0,points:0,
+  stats:{STR:5,AGI:5,VIT:5,END:5,SPR:5},alloc:{STR:0,AGI:0,VIT:0,END:0,SPR:0},streak:0,best:0,lastDone:'',day:'',quest:null,proofs:[],fp:[],avatar:'',msg:'',
+  totReps:0,totKm:0,totSec:0,hist:{},shield:0,boost:'',boss:null,kills:0,ach:{},daysDone:0,mute:false}}
+function load(){
+  let d=null;
+  try{d=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+  if(!d){try{const o=JSON.parse(localStorage.getItem(OLD));if(o){d=o;d.setup=true;delete d.quest;delete d.day}}catch(e){}}
+  const b=defState();
+  if(d&&typeof d==='object'){Object.assign(b,d);b.stats=Object.assign(defState().stats,d.stats||{});b.alloc=Object.assign(defState().a
