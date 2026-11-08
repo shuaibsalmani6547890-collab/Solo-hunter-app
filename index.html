@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#02060f">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
 <title>Hunter System</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
@@ -303,4 +304,437 @@ function load(){
   try{d=JSON.parse(localStorage.getItem(KEY))}catch(e){}
   if(!d){try{const o=JSON.parse(localStorage.getItem(OLD));if(o){d=o;d.setup=true;delete d.quest;delete d.day}}catch(e){}}
   const b=defState();
-  if(d&&typeof d==='object'){Object.assign(b,d);b.stats=Object.assign(defState().stats,d.stats||{});b.alloc=Object.assign(defState().a
+  if(d&&typeof d==='object'){Object.assign(b,d);b.stats=Object.assign(defState().stats,d.stats||{});b.alloc=Object.assign(defState().alloc,d.alloc||{})}
+  return b;
+}
+let S=load();
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify(S))}
+  catch(e){S.proofs=S.proofs.slice(0,3);try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e2){toast('Storage full, proofs kam kar diye')}}
+}
+const need=l=>Math.round(100*Math.pow(l,1.4));
+const tierOf=l=>{let i=0;TIERS.forEach((t,k)=>{if(l>=t.min)i=k});return i};
+function subOf(l){const i=tierOf(l),t=TIERS[i],nx=TIERS[i+1];if(!nx)return '';const th=(nx.min-t.min)/3,d=l-t.min;return d<th?'III':d<2*th?'II':'I'}
+const power=(st,l)=>Math.round(Object.values(st).reduce((a,b)=>a+Number(b||0),0)*10+l*50);
+function clsOf(st){const v=Object.values(st);if(Math.max(...v)-Math.min(...v)<1)return 'NOVICE';let k='STR',m=-1;for(const x in st){if(st[x]>m){m=st[x];k=x}}return CLS[k]}
+
+/* ================= THEME & FX ================= */
+let ACC='#38bdf8';
+function setTheme(hex){
+  ACC=hex;const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16),R=document.documentElement.style;
+  R.setProperty('--a',hex);R.setProperty('--a1',`rgba(${r},${g},${b},.16)`);R.setProperty('--a2',`rgba(${r},${g},${b},.45)`);R.setProperty('--a3',`rgba(${r},${g},${b},.85)`);
+}
+const fx=$('#fx'),fc=fx.getContext('2d');let P=[];
+function fxResize(){fx.width=innerWidth;fx.height=innerHeight}
+function fxInit(){P=[];for(let i=0;i<38;i++)P.push({x:Math.random()*fx.width,y:Math.random()*fx.height,r:Math.random()*2+.6,v:Math.random()*.5+.15,a:Math.random()*.6+.2,d:Math.random()*6})}
+function fxLoop(){
+  fc.clearRect(0,0,fx.width,fx.height);fc.fillStyle=ACC;
+  P.forEach(p=>{p.y-=p.v;p.d+=.01;p.x+=Math.sin(p.d)*.3;if(p.y<-5){p.y=fx.height+5;p.x=Math.random()*fx.width}fc.globalAlpha=p.a;fc.beginPath();fc.arc(p.x,p.y,p.r,0,7);fc.fill()});
+  fc.globalAlpha=1;requestAnimationFrame(fxLoop);
+}
+addEventListener('resize',()=>{fxResize();fxInit()});
+
+/* ================= SOUND / TOAST ================= */
+let AC;
+function tone(f,st,d,type,v){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain(),t0=AC.currentTime+st;o.type=type||'square';o.frequency.value=f;g.gain.setValueAtTime(v||.05,t0);g.gain.exponentialRampToValueAtTime(.0001,t0+d);o.connect(g);g.connect(AC.destination);o.start(t0);o.stop(t0+d+.02)}catch(e){}}
+function sfx(k){
+  if(S.mute)return;
+  if(k==='rep')tone(520,0,.1);
+  else if(k==='done'){tone(660,0,.12);tone(880,.12,.2)}
+  else if(k==='lvl'){[440,554,659,880,1108].forEach((f,i)=>tone(f,i*.12,.3,'sawtooth',.06))}
+  else if(k==='err')tone(180,0,.25,'sawtooth');
+  else if(k==='buy'){tone(880,0,.1);tone(1175,.1,.15)}
+}
+let TQ=[],TB=false;
+function toast(m){TQ.push(m);if(!TB)nextToast()}
+function nextToast(){const m=TQ.shift();if(!m){TB=false;return}TB=true;const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>{t.classList.remove('show');setTimeout(nextToast,300)},2300)}
+function floatText(txt){const f=document.createElement('div');f.className='float';f.textContent=txt;document.body.appendChild(f);setTimeout(()=>f.remove(),1100)}
+
+/* ================= BADGE (rank logo) ================= */
+let bid=0;
+function badge(i,size){
+  size=size||100;
+  const t=TIERS[i],id='g'+(bid++),ch=Math.min(3,i+1);
+  let chev='';
+  for(let k=0;k<ch;k++){const y=54+k*12;chev+=`<path d="M32 ${y} L50 ${y+12} L68 ${y}" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity=".92"/>`}
+  const gem=i>=3?`<polygon points="50,16 62,30 50,44 38,30" fill="#fff" stroke="${t.c2}" stroke-width="2"/>`:'';
+  const wing='<path d="M10 36 L-10 20 L-5 42 L-12 52 L10 64 Z"/>';
+  const wings=i>=5?`<g fill="${t.c1}" stroke="${t.c2}" stroke-width="2">${wing}<g transform="translate(100 0) scale(-1 1)">${wing}</g></g>`:'';
+  const crown=i===6?'<path d="M32 16 L36 0 L45 10 L50 -2 L55 10 L64 0 L68 16 Z" fill="#ffd54f" stroke="#b8860b" stroke-width="2"/>':'';
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${Math.round(size*0.97)}" viewBox="-14 -6 128 128"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${t.c1}"/><stop offset="1" stop-color="${t.c2}"/></linearGradient></defs>${wings}<path d="M50 4 L92 20 V62 C92 90 70 108 50 116 C30 108 8 90 8 62 V20 Z" fill="url(#${id})" stroke="#fff" stroke-width="3"/><path d="M50 12 L84 25 V61 C84 84 66 99 50 106 C34 99 16 84 16 61 V25 Z" fill="none" stroke="#0007" stroke-width="2"/>${gem}${chev}${crown}</svg>`;
+}
+
+/* ================= RADAR ================= */
+function radar(st,l,col){
+  const keys=Object.keys(STATS),cx=110,cy=105,R=70,max=Math.max(20,10+l*3,...Object.values(st));
+  const pt=(i,f)=>{const a=(-90+i*72)*Math.PI/180;return [cx+Math.cos(a)*R*f,cy+Math.sin(a)*R*f]};
+  let g='';
+  [.25,.5,.75,1].forEach(f=>{g+=`<polygon points="${keys.map((k,i)=>pt(i,f).join(',')).join(' ')}" fill="none" stroke="${col}" stroke-opacity=".25"/>`});
+  keys.forEach((k,i)=>{const p=pt(i,1),q=pt(i,1.22);g+=`<line x1="${cx}" y1="${cy}" x2="${p[0]}" y2="${p[1]}" stroke="${col}" stroke-opacity=".25"/><text x="${q[0]}" y="${q[1]+4}" text-anchor="middle" font-size="11" fill="${col}" font-family="Orbitron,sans-serif">${k}</text>`});
+  const poly=keys.map((k,i)=>pt(i,Math.min(1,st[k]/max)).join(',')).join(' ');
+  g+=`<polygon points="${poly}" fill="${col}" fill-opacity=".3" stroke="${col}" stroke-width="2"/>`;
+  return `<svg viewBox="0 0 220 210" width="100%" style="max-width:260px">${g}</svg>`;
+}
+
+/* ================= QUEST / DAY LOGIC ================= */
+function newQuest(){
+  return EX.filter(e=>e.min<=S.level).map(e=>{
+    let t=e.base+e.per*S.level;
+    t=e.unit==='km'?Math.min(21,+t.toFixed(1)):Math.round(t);
+    return {id:e.id,target:t,done:0,bonus:false};
+  });
+}
+function weekKey(){const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return d.toLocaleDateString('en-CA')}
+function ensureBoss(){
+  const wk=weekKey();
+  if(!S.boss||S.boss.week!==wk){
+    const wn=Math.floor(new Date(wk).getTime()/6048e5),b=BOSSES[(wn+tierOf(S.level))%BOSSES.length],max=200+S.level*50;
+    S.boss={week:wk,name:b[0],icon:b[1],max:max,hp:max,dead:false};
+  }
+}
+function rollover(){
+  const t=todayStr();if(S.day===t)return;
+  const prev=S.day;
+  if(prev&&S.quest){
+    const done=S.lastDone===prev||S.quest.every(i=>i.done>=i.target);
+    if(!done){
+      if(S.shield>0){S.shield--;S.lastDone=prev;S.msg='🛡 Streak Shield ne tumhari penalty bacha li'}
+      else{S.xp=Math.max(0,S.xp-30);S.streak=0;S.msg='⚠ PENALTY: kal ka quest adhura tha. -30 XP aur streak reset'}
+    }
+  }
+  if(S.lastDone&&daysBetween(S.lastDone,t)>1)S.streak=0;
+  S.quest=newQuest();S.day=t;ensureBoss();
+}
+const xpMul=()=>S.boost===todayStr()?2:1;
+const xpFor=(e,a)=>e.unit==='km'?a*25:e.unit==='sec'?a*.5:a*2;
+
+function gainXP(n){
+  S.xp+=n;
+  const lv0=S.level,t0=tierOf(S.level);
+  while(S.xp>=need(S.level)){S.xp-=need(S.level);S.level++;S.points+=3}
+  if(S.level>lv0)cine(tierOf(S.level)>t0,(S.level-lv0)*3);
+}
+function cine(rankUp,pts){
+  const ti=tierOf(S.level);
+  setTheme(TIERS[ti].a);
+  $('#cTitle').textContent=rankUp?'RANK UP!':'LEVEL UP!';
+  $('#cBadge').innerHTML=badge(ti,150);
+  $('#cLv').textContent='LEVEL '+S.level+' | '+TIERS[ti].n+' '+subOf(S.level);
+  $('#cSub').textContent='+'+pts+' STAT POINTS | Naye aur hard tasks kal se';
+  $('#cine').classList.add('show');
+  sfx('lvl');if(navigator.vibrate)navigator.vibrate([200,100,200,100,300]);
+}
+function hitBoss(d){
+  ensureBoss();const b=S.boss;if(b.dead)return;
+  b.hp=Math.max(0,b.hp-d);
+  if(b.hp<=0){b.dead=true;S.kills++;S.gold+=100;const xp=150+S.level*10;toast(`☠ ${b.name} haar gaya! +${xp} XP, +100 gold`);gainXP(xp)}
+}
+function checkAch(){ACH.forEach(a=>{if(!S.ach[a.id]&&a.f(S)){S.ach[a.id]=todayStr();S.gold+=25;toast(`🏆 TROPHY: ${a.n} (+25 gold)`)}})}
+
+function addProgress(id,amt){
+  const q=S.quest.find(x=>x.id===id),e=EX.find(x=>x.id===id);
+  if(!q||q.done>=q.target)return 0;
+  const add=Math.min(amt,q.target-q.done);
+  q.done+=add;
+  const xp=Math.round(xpFor(e,add)*xpMul());
+  S.stats[e.stat]+=e.unit==='km'?add*.2:e.unit==='sec'?add*.02:add*.1;
+  if(e.unit==='km')S.totKm+=add;else if(e.unit==='sec')S.totSec+=add;else S.totReps+=add;
+  S.gold+=Math.ceil(xp/4);
+  hitBoss(e.unit==='km'?add*25:e.unit==='sec'?add*.3:add);
+  floatText('+'+xp+' XP');sfx('rep');
+  gainXP(xp);
+  if(q.done>=q.target&&!q.bonus){q.bonus=true;gainXP(20);toast(`[SYSTEM] ${e.name} complete! +20 XP`);sfx('done')}
+  if(S.quest.every(i=>i.done>=i.target)&&S.lastDone!==todayStr()){
+    S.streak=(S.lastDone===dayOffset(-1))?S.streak+1:1;S.best=Math.max(S.best,S.streak);
+    S.lastDone=todayStr();S.hist[todayStr()]=1;S.daysDone++;S.stats.SPR+=1;S.gold+=30;
+    gainXP(50);toast('🏆 DAILY QUEST COMPLETE! +50 XP, +30 gold');sfx('done');
+  }
+  checkAch();
+  return add;
+}
+
+/* ================= PHOTO PROOF ================= */
+let pend=null,curTask=null;
+function hash(s){let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return String(h)}
+function resize(file,max,q,cb){
+  const r=new FileReader();
+  r.onload=()=>{const im=new Image();im.onload=()=>{
+    const c=document.createElement('canvas'),s=Math.min(1,max/Math.max(im.width,im.height));
+    c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+    cb(c.toDataURL('image/jpeg',q));
+  };im.src=r.result};
+  r.readAsDataURL(file);
+}
+function openProof(id){
+  curTask=id;pend=null;
+  const e=EX.find(x=>x.id===id),q=S.quest.find(x=>x.id===id),rem=+(q.target-q.done).toFixed(1);
+  $('#ptitle').textContent=e.i+' '+e.name.toUpperCase()+' PROOF';
+  const a=$('#pamt');a.max=rem;a.step=e.unit==='km'?'0.1':'1';
+  a.value=e.unit==='km'?Math.min(1,rem):e.unit==='sec'?Math.min(20,rem):Math.min(10,rem);
+  $('#pamtlabel').textContent=`Kitne ${e.unit==='sec'?'seconds':e.unit} kiye? (max ${rem})`;
+  $('#pprev').style.display='none';$('#pok').disabled=true;$('#pmsg').textContent='';
+  $('#proofModal').classList.add('show');
+}
+function closeProof(){$('#proofModal').classList.remove('show');pend=null}
+$('#pfile').addEventListener('change',e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  $('#pmsg').textContent='';$('#pok').disabled=true;
+  if(f.lastModified&&Date.now()-f.lastModified>15*60*1000){$('#pmsg').textContent='Photo purani hai. Abhi exercise karte hue nayi photo lo.';sfx('err');return}
+  resize(f,320,.55,url=>{
+    const h=hash(url);
+    if(S.fp.includes(h)){$('#pmsg').textContent='Yeh photo pehle use ho chuki hai. Nayi photo lo.';sfx('err');return}
+    pend={img:url,h:h};
+    const p=$('#pprev');p.src=url;p.style.display='block';$('#pok').disabled=false;
+  });
+});
+function confirmProof(){
+  if(!pend)return toast('Pehle photo lo');
+  const e=EX.find(x=>x.id===curTask),amt=parseFloat($('#pamt').value);
+  if(!amt||amt<=0){$('#pmsg').textContent='Sahi amount daalo';return}
+  const add=addProgress(curTask,amt);
+  if(add>0){
+    S.proofs.unshift({img:pend.img,task:e.name,amt:+add.toFixed(1)+' '+e.unit,date:todayStr()});
+    S.proofs=S.proofs.slice(0,12);S.fp.push(pend.h);S.fp=S.fp.slice(-300);
+  }
+  save();render();closeProof();
+}
+$('#afile').addEventListener('change',e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  resize(f,220,.7,url=>{S.avatar=url;save();render()});
+});
+
+/* ================= SHOP / STATS ================= */
+function alloc(k){
+  if(S.points<=0||!(k in STATS))return;
+  S.stats[k]+=1;S.alloc[k]=(S.alloc[k]||0)+1;S.points--;sfx('rep');save();render();
+}
+function buy(id){
+  const it=SHOP.find(x=>x.id===id);if(!it)return;
+  if(S.gold<it.p){sfx('err');return toast('Gold kam hai')}
+  if(id==='shield'){if(S.shield>=3)return toast('Max 3 shields');S.shield++}
+  else if(id==='boost'){if(S.boost===todayStr())return toast('XP Scroll pehle se active hai');S.boost=todayStr()}
+  else if(id==='reset'){
+    let n=0;Object.keys(STATS).forEach(k=>{const a=S.alloc[k]||0;S.stats[k]=Math.max(1,S.stats[k]-a);n+=a;S.alloc[k]=0});
+    if(!n)return toast('Reset karne ke liye koi allocated points nahi');
+    S.points+=n;
+  }
+  S.gold-=it.p;sfx('buy');toast('✔ '+it.n+' mil gaya');checkAch();save();render();
+}
+
+/* ================= RENDER ================= */
+function showPage(p){
+  ['Hunter','Quest','Dungeon','Net'].forEach(n=>$('#page'+n).classList.toggle('on',n===p));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
+  window.scrollTo(0,0);
+}
+function render(){
+  const L=S.level,ti=tierOf(L);setTheme(TIERS[ti].a);
+  $('#hLv').textContent='LV '+L;$('#hGold').textContent='🪙 '+S.gold;
+  renderHunter();renderQuest();renderDungeon();renderNet();
+}
+function renderHunter(){
+  const L=S.level,ti=tierOf(L),T=TIERS[ti],n=need(L),pct=Math.min(100,S.xp/n*100);
+  $('#hero').innerHTML=`<div class="hero"><div class="ringwrap" data-act="avatar"><div class="avatar">${S.avatar?`<img src="${S.avatar}">`:'👤'}</div></div>
+  <div style="flex:1;min-width:0"><div class="small dim o">${esc(S.id)}</div><div class="o name">${esc(S.name)}</div><div class="tier o">${T.n} ${subOf(L)}</div>
+  <div class="small">CLASS: <b>${clsOf(S.stats)}</b></div><div class="small">⚔ POWER <b>${power(S.stats,L)}</b> &nbsp;🔥 ${S.streak}d</div></div></div>
+  <div class="center" style="margin-top:10px">${badge(ti,140)}</div><div class="center o lvl">LV ${L}</div>
+  <div class="bar"><i style="width:${pct}%"></i></div><div class="small center dim">${Math.floor(S.xp)} / ${n} XP</div>
+  ${S.points>0?`<div class="pts o">✨ ${S.points} STAT POINTS MILE HAIN. Neeche + dabao</div>`:''}`;
+  $('#radar').innerHTML=radar(S.stats,L,T.a);
+  const mx=Math.max(20,10+L*3,...Object.values(S.stats));
+  $('#stats').innerHTML=Object.keys(STATS).map(k=>`<div class="srow"><span class="sk o">${k}</span><div class="bar" style="margin:0"><i style="width:${Math.min(100,S.stats[k]/mx*100)}%"></i></div><b>${Math.floor(S.stats[k])}</b>${S.points>0?`<button class="plus" data-alloc="${k}">+</button>`:'<span></span>'}</div>`).join('');
+  $('#ladder').innerHTML=TIERS.map((t,i)=>`<div class="lad ${i===ti?'cur':i<ti?'got':''}">${badge(i,50)}<div class="small o" style="font-size:8px">${t.n}</div><div class="small dim">Lv ${t.min}+</div></div>`).join('');
+}
+function renderQuest(){
+  const q=S.quest||[],done=q.filter(i=>i.done>=i.target).length,pct=q.length?done/q.length*100:0;
+  $('#qhead').innerHTML=`<div class="row"><div><div class="small dim o">TODAY</div><div class="o" style="font-size:20px">${done}/${q.length} TASKS</div></div><div style="text-align:right"><div class="small dim o">RESET IN</div><div class="o" id="cd">--:--:--</div></div></div>
+  <div class="bar"><i style="width:${pct}%"></i></div>
+  <div class="chips">🔥 Streak ${S.streak} (best ${S.best}) &nbsp;🛡 ${S.shield} ${S.boost===todayStr()?'&nbsp;<b style="color:var(--gold)">⚡ XP x2 ACTIVE</b>':''}</div>`;
+  $('#quest').innerHTML=q.map(it=>{
+    const e=EX.find(x=>x.id===it.id),d=it.done>=it.target,p=Math.min(100,it.done/it.target*100),u=e.unit==='sec'?'s':e.unit;
+    return `<div class="task ${d?'done':''}"><div class="ico">${e.i}</div><div><div class="row"><b>${d?'✔ ':''}${e.name}</b><span class="small dim">${+it.done.toFixed(1)}/${it.target} ${u}</span></div><div class="bar" style="margin:4px 0"><i style="width:${p}%"></i></div><div class="small dim">Reward +${Math.round(xpFor(e,it.target)*xpMul())} XP</div></div><button class="pri" data-proof="${it.id}" ${d?'disabled':''}>📸</button></div>`;
+  }).join('');
+  let c='';
+  for(let i=13;i>=0;i--){const d=dayOffset(-i),dd=d.slice(8);c+=`<div class="${S.hist[d]?'on':''} ${i===0?'today':''}">${dd}</div>`}
+  $('#cal').innerHTML=c;
+  $('#noproof').style.display=S.proofs.length?'none':'block';
+  $('#photos').innerHTML=S.proofs.map((p,i)=>`<div data-img="${i}"><img src="${p.img}"><span>${esc(p.task)} ${esc(p.amt)}<br>${p.date}</span></div>`).join('');
+}
+function renderDungeon(){
+  ensureBoss();const b=S.boss,pct=b.hp/b.max*100;
+  $('#boss').innerHTML=`<div class="small dim o">WEEKLY BOSS</div><div class="bossico ${b.dead?'dead':''}">${b.icon}</div><div class="o" style="font-size:18px;margin:4px 0">${b.name}</div>
+  <div class="bar red"><i style="width:${pct}%"></i></div><div class="small">${b.dead?'☠ DEFEATED! Agle hafte naya boss aayega':`HP ${Math.ceil(b.hp)} / ${b.max}`}</div>
+  <div class="small dim" style="margin-top:6px">Har rep = 1 damage, 1 km = 25, plank 1 sec = 0.3. Kill reward: ${150+S.level*10} XP + 100 gold. Total kills: ${S.kills}</div>`;
+  $('#shop').innerHTML=SHOP.map(s=>`<div class="shop"><div class="ico">${s.i}</div><div><b class="o" style="font-size:12px">${s.n}</b><div class="small dim">${s.d}</div></div><button class="pri" data-buy="${s.id}" ${S.gold<s.p?'style="opacity:.5"':''}>🪙 ${s.p}</button></div>`).join('');
+  $('#ach').innerHTML=ACH.map(a=>`<div class="${S.ach[a.id]?'got':''}"><b>${a.i}</b>${a.n}</div>`).join('');
+}
+function renderNet(){
+  const L=S.level,ti=tierOf(L);
+  $('#netcard').innerHTML=`<div class="row" style="gap:14px"><div>${badge(ti,80)}</div><div style="flex:1"><div class="o name">${esc(S.name)}</div><div class="tier o" style="font-size:15px">${TIERS[ti].n} ${subOf(L)} | LV ${L}</div><div class="small">⚔ POWER ${power(S.stats,L)}</div><div class="small dim">${esc(S.id)}</div></div></div>`;
+  $('#myCode').value=myCode();
+  $('#iname').value=S.name;$('#ih').value=S.h;$('#iw').value=S.w;
+  $('#muteBtn').textContent=S.mute?'🔇 SOUND OFF':'🔊 SOUND ON';
+}
+
+/* ================= SHARE / SCAN ================= */
+function myCode(){
+  const o={v:1,n:S.name,id:S.id,l:S.level,s:Object.keys(STATS).map(k=>Math.floor(S.stats[k])),sk:S.streak,tr:Math.floor(S.totReps),tk:+S.totKm.toFixed(1),k:S.kills};
+  return btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+}
+function decodeCode(c){
+  try{
+    c=String(c).trim();const i=c.indexOf('#h=');if(i>=0)c=c.slice(i+3);
+    if(/%/.test(c))c=decodeURIComponent(c);
+    const o=JSON.parse(decodeURIComponent(escape(atob(c))));
+    if(!o||o.v!==1||!Array.isArray(o.s)||o.s.length!==5)return null;
+    return o;
+  }catch(e){return null}
+}
+function renderScan(o){
+  const st={};Object.keys(STATS).forEach((k,i)=>st[k]=Number(o.s[i])||0);
+  const l=Math.max(1,Math.min(999,Number(o.l)||1)),ti=tierOf(l),pw=power(st,l),mp=power(S.stats,S.level);
+  const rows=[['POWER',mp,pw],['LEVEL',S.level,l],['STREAK',S.streak,Number(o.sk)||0],['REPS',Math.floor(S.totReps),Number(o.tr)||0],['KM',+S.totKm.toFixed(1),Number(o.tk)||0],['BOSS KILLS',S.kills,Number(o.k)||0]];
+  const vs=rows.map(r=>`<div class="vs"><span class="${r[1]>r[2]?'w':''}">${r[1]}</span><span class="small dim">${r[0]}</span><span class="${r[2]>r[1]?'w':''}">${r[2]}</span></div>`).join('');
+  const verdict=mp>pw?'⚔ TUM JEET RAHE HO!':mp<pw?'⚠ WO TUMSE MAJBOOT HAI. Aur mehnat karo!':'🤝 BARABAR KI TAKKAR!';
+  $('#scanOut').innerHTML=`<div class="row" style="gap:12px"><div>${badge(ti,70)}</div><div style="flex:1"><div class="o name">${esc(String(o.n||'Hunter').slice(0,24))}</div><div class="tier o" style="font-size:14px">${TIERS[ti].n} ${subOf(l)} | LV ${l}</div><div class="small">CLASS: ${clsOf(st)}</div></div></div>
+  <div class="center">${radar(st,l,TIERS[ti].a)}</div><div class="row small o" style="margin-top:6px"><span>TUM</span><span>VS</span><span>${esc(String(o.n||'Hunter').slice(0,12))}</span></div>${vs}<div class="center o" style="margin-top:12px;color:var(--gold);font-size:13px">${verdict}</div>`;
+}
+function shareText(){
+  const L=S.level,ti=tierOf(L),s=S.stats;
+  return `⚔ ${S.name} | ${TIERS[ti].n} ${subOf(L)} | Level ${L}\nPower ${power(s,L)} | 🔥 ${S.streak} din streak\nSTR ${Math.floor(s.STR)} AGI ${Math.floor(s.AGI)} VIT ${Math.floor(s.VIT)} END ${Math.floor(s.END)} SPR ${Math.floor(s.SPR)}\nMade by Shuaib Salmani`;
+}
+const loadImg=src=>new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src});
+function drawRadar(x,cx,cy,R,st,l,col){
+  const keys=Object.keys(STATS),max=Math.max(20,10+l*3,...Object.values(st));
+  const pt=(i,f)=>{const a=(-90+i*72)*Math.PI/180;return [cx+Math.cos(a)*R*f,cy+Math.sin(a)*R*f]};
+  x.strokeStyle=col;x.lineWidth=1.5;
+  x.globalAlpha=.3;
+  [.25,.5,.75,1].forEach(f=>{x.beginPath();keys.forEach((k,i)=>{const p=pt(i,f);i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])});x.closePath();x.stroke()});
+  keys.forEach((k,i)=>{const p=pt(i,1);x.beginPath();x.moveTo(cx,cy);x.lineTo(p[0],p[1]);x.stroke()});
+  x.globalAlpha=1;x.fillStyle=col;x.textAlign='center';x.font='bold 22px sans-serif';
+  keys.forEach((k,i)=>{const q=pt(i,1.25);x.fillText(k,q[0],q[1]+8)});
+  x.globalAlpha=.35;x.beginPath();keys.forEach((k,i)=>{const p=pt(i,Math.min(1,st[k]/max));i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])});x.closePath();x.fill();
+  x.globalAlpha=1;x.lineWidth=4;x.stroke();
+}
+async function makeCard(){
+  const L=S.level,ti=tierOf(L),T=TIERS[ti],col=T.a;
+  const c=document.createElement('canvas');c.width=800;c.height=1180;const x=c.getContext('2d');
+  const g=x.createLinearGradient(0,0,0,1180);g.addColorStop(0,'#0b2350');g.addColorStop(1,'#02060f');x.fillStyle=g;x.fillRect(0,0,800,1180);
+  x.strokeStyle=col;x.lineWidth=6;x.strokeRect(20,20,760,1140);x.lineWidth=2;x.strokeRect(34,34,732,1112);
+  x.textAlign='center';x.fillStyle=col;x.font='bold 34px sans-serif';x.fillText('[ HUNTER SYSTEM ]',400,92);
+  x.save();x.beginPath();x.arc(400,220,80,0,Math.PI*2);x.clip();x.fillStyle='#06142b';x.fillRect(320,140,160,160);
+  if(S.avatar){const a=await loadImg(S.avatar);if(a){const s=Math.max(160/a.width,160/a.height);x.drawImage(a,400-a.width*s/2,220-a.height*s/2,a.width*s,a.height*s)}}
+  x.restore();x.beginPath();x.arc(400,220,80,0,Math.PI*2);x.strokeStyle=col;x.lineWidth=5;x.stroke();
+  x.fillStyle='#fff';x.font='bold 54px sans-serif';x.fillText(S.name,400,365);
+  x.fillStyle=col;x.font='bold 30px sans-serif';x.fillText(clsOf(S.stats),400,408);
+  const b=await loadImg('data:image/svg+xml;charset=utf-8,'+encodeURIComponent(badge(ti,260)));
+  if(b)x.drawImage(b,50,450,260,252);
+  drawRadar(x,555,580,120,S.stats,L,col);
+  x.fillStyle=T.c1;x.font='bold 46px sans-serif';x.fillText(T.n+' '+subOf(L),400,775);
+  x.fillStyle='#fff';x.font='bold 40px sans-serif';x.fillText('LEVEL '+L+'   |   POWER '+power(S.stats,L),400,835);
+  x.fillStyle='#dff3ff';x.font='30px sans-serif';
+  x.fillText(Object.keys(STATS).map(k=>k+' '+Math.floor(S.stats[k])).join('   '),400,905);
+  x.fillStyle='#fbbf24';x.font='bold 32px sans-serif';
+  x.fillText(`🔥 ${S.streak} din  |  ${Math.floor(S.totReps)} reps  |  ${+S.totKm.toFixed(1)} km`,400,975);
+  x.fillText(`☠ ${S.kills} boss kills  |  🏆 ${Object.keys(S.ach).length} trophies`,400,1030);
+  x.fillStyle=col;x.font='22px sans-serif';x.fillText(S.id,400,1085);x.font='bold 24px sans-serif';x.fillText('MADE BY SHUAIB SALMANI',400,1125);
+  return c;
+}
+async function shareCard(){
+  const c=await makeCard();
+  c.toBlob(async b=>{
+    const f=new File([b],'hunter-card.png',{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:'My Hunter Card',text:shareText()})}catch(e){}return}
+    const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='hunter-card.png';a.click();
+    toast('Card download ho gaya. Ab kisi ko bhej do.');
+  });
+}
+function copy(t,ok){try{navigator.clipboard.writeText(t).then(()=>toast(ok),()=>toast('Copy nahi hua'))}catch(e){toast('Copy nahi hua')}}
+async function shareLink(){
+  const code=myCode(),url=/^https?:/.test(location.protocol)?location.origin+location.pathname+'#h='+encodeURIComponent(code):null;
+  const text=shareText()+'\n\nHunter Code:\n'+(url||code);
+  if(navigator.share){try{await navigator.share({title:'My Hunter',text:text});return}catch(e){return}}
+  copy(text,'Text + code copy ho gaya');
+}
+
+/* ================= BACKUP ================= */
+function exportData(){
+  const t=JSON.stringify(Object.assign({},S,{proofs:[],fp:[]}));
+  $('#bk').value=t;copy(t,'Backup copy ho gaya');
+  try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'application/json'}));a.download='hunter-backup.json';a.click()}catch(e){}
+}
+function importData(){
+  try{
+    const d=JSON.parse($('#bk').value);
+    if(!d||typeof d.level!=='number'||typeof d.stats!=='object')throw 0;
+    d.setup=true;localStorage.setItem(KEY,JSON.stringify(d));location.reload();
+  }catch(e){toast('Backup text sahi nahi hai')}
+}
+
+/* ================= BOOT (Awakening) ================= */
+function boot(){
+  $('#boot').classList.add('show');
+  const lines=['[SYSTEM] Initializing...','[SYSTEM] Unknown signal detected.','[SYSTEM] Player found. Awakening possible.','[SYSTEM] Register your hunter profile.'];
+  const out=$('#bootlog');let li=0,ci=0,txt='';
+  const iv=setInterval(()=>{
+    if(li>=lines.length){clearInterval(iv);$('#bootform').classList.add('show');return}
+    txt+=lines[li][ci++];out.textContent=txt;
+    if(ci>=lines[li].length){li++;ci=0;txt+='\n'}
+  },28);
+}
+function awaken(){
+  S.name=($('#bName').value.trim()||'Player').slice(0,20);S.h=+$('#bH').value||170;S.w=+$('#bW').value||65;S.setup=true;
+  save();$('#boot').classList.remove('show');render();sfx('lvl');toast('Welcome, Hunter '+S.name);
+}
+
+/* ================= EVENTS ================= */
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-proof],[data-alloc],[data-buy],[data-img],[data-p],[data-act]');
+  if(!t)return;
+  const d=t.dataset;
+  if(d.proof)openProof(d.proof);
+  else if(d.alloc)alloc(d.alloc);
+  else if(d.buy)buy(d.buy);
+  else if(d.img!==undefined){const p=S.proofs[+d.img];if(p){$('#bigimg').src=p.img;$('#imgModal').classList.add('show')}}
+  else if(d.p)showPage(d.p);
+  else switch(d.act){
+    case 'avatar':$('#afile').click();break;
+    case 'closecine':$('#cine').classList.remove('show');break;
+    case 'closeimg':$('#imgModal').classList.remove('show');break;
+    case 'pickproof':$('#pfile').click();break;
+    case 'confirmproof':confirmProof();break;
+    case 'closeproof':closeProof();break;
+    case 'awaken':awaken();break;
+    case 'share':shareCard();break;
+    case 'sharelink':shareLink();break;
+    case 'copycode':copy(myCode(),'Hunter Code copy ho gaya');break;
+    case 'scan':{const o=decodeCode($('#scanIn').value);if(!o){toast('Code sahi nahi hai');sfx('err')}else{renderScan(o);sfx('done')}break}
+    case 'savep':S.name=($('#iname').value.trim()||'Player').slice(0,20);S.h=+$('#ih').value||170;S.w=+$('#iw').value||65;save();render();toast('Profile saved');break;
+    case 'mute':S.mute=!S.mute;save();render();break;
+    case 'export':exportData();break;
+    case 'import':importData();break;
+    case 'reset':if(confirm('Sab data delete ho jayega. Pakka?')){localStorage.removeItem(KEY);localStorage.removeItem(OLD);location.reload()}break;
+  }
+});
+
+/* ================= TICK / INIT ================= */
+function tick(){
+  if(S.day!==todayStr()){rollover();save();render();if(S.msg){toast(S.msg);S.msg='';save()}}
+  const cd=$('#cd');if(cd){
+    const n=new Date(),m=new Date(n);m.setHours(24,0,0,0);let s=Math.floor((m-n)/1000);
+    const p=v=>String(v).padStart(2,'0');cd.textContent=p(Math.floor(s/3600))+':'+p(Math.floor(s%3600/60))+':'+p(s%60);
+  }
+}
+function init(){
+  rollover();ensureBoss();render();
+  if(S.msg){toast(S.msg);S.msg=''}
+  save();
+  if(!S.setup)boot();
+  fxResize();fxInit();fxLoop();tick();setInterval(tick,1000);
+  if(location.hash.indexOf('#h=')===0){const o=decodeCode(location.hash);if(o){showPage('Net');renderScan(o);toast('Hunter scan ho gaya')}}
+}
+init();
+if('serviceWorker' in navigator&&/^https?:/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
